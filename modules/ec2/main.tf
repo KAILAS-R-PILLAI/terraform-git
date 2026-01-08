@@ -49,3 +49,16 @@ resource "aws_instance" "this" {
     Name = "ec2-prod"
   }
 }
+resource "null_resource" "ssm_bootstrap" {
+  depends_on = [aws_instance.this]
+
+  triggers = {
+    instance_id = aws_instance.this.id
+  }
+
+  provisioner "local-exec" {
+  command = <<EOT
+sleep 60 && aws ssm send-command --profile kailas --document-name "AWS-RunShellScript" --targets "Key=instanceIds,Values=${aws_instance.this.id}" --parameters 'commands=["sudo amazon-linux-extras enable nginx1","sudo yum clean metadata","sudo yum install -y nginx","sudo systemctl start nginx","sudo systemctl enable nginx"]' --region ap-south-1
+EOT
+}
+}
